@@ -5,15 +5,21 @@ var Chrono = React.createClass({
 
   getInitialState: function() {
     return {
-      startTS: null,
-      diff: null,
-      suspended: 0,
-      interval: null
+      seconds: 0,
+      milliseconds: 0,
+      startTS: null
     };
   },
 
   componentDidMount: function() {
     window.addEventListener('keydown', this.onKeyDown);
+    if(this.state.milliseconds == 99) {
+      this.setState({milliseconds: 0})
+    }
+  },
+
+  componentWillUnmount: function() {
+    clearInterval(this.interval);
   },
 
   onKeyDown: function(evt){
@@ -25,35 +31,30 @@ var Chrono = React.createClass({
   },
 
   start: function(){
-    if (this.state.startTS) {
+    const {seconds, milliseconds} = this.state;
+    if (milliseconds) {
       // prevent multi clicks on start
       return;
     }
-    this.setState({
-      startTS: +new Date() - this.state.suspended,
-      interval: requestAnimationFrame(this.tick),
-      suspended: 0
-    });
+    this.intervaloMillseconds = setInterval(() => {
+      this.setState({milliseconds: this.state.milliseconds == 99 ? 0 : this.state.milliseconds+1})
+      }, 10)
+    this.intervaloSegundos = setInterval(() => {
+      this.setState({seconds: this.state.seconds+1})
+      }, 1000)  
+    this.setState({startTS: 'stop '})
   },
 
   stop: function(){
-    cancelAnimationFrame(this.state.interval);
-    this.setState({
-      startTS: null,
-      suspended: +this.state.diff
-    });
+    clearInterval(this.intervaloMillseconds);
+    clearInterval(this.intervaloSegundos);
+    this.setState({startTS: 'start'})
   },
 
   reset: function(){
-    cancelAnimationFrame(this.state.interval);
+    clearInterval(this.intervaloMillseconds);
+    clearInterval(this.intervaloSegundos);
     this.setState(this.getInitialState());
-  },
-
-  tick: function(){
-    this.setState({
-      diff: new Date(+new Date() - this.state.startTS),
-      interval: requestAnimationFrame(this.tick)
-    });
   },
 
   addZero: function(n){
@@ -62,16 +63,13 @@ var Chrono = React.createClass({
 
   render: function(){
 
-    var diff = this.state.diff;
-    var hundredths = diff ? Math.round(this.state.diff.getMilliseconds()/10) : 0;
-    var seconds = diff ? this.state.diff.getSeconds() : 0;
-    var minutes = diff ? this.state.diff.getMinutes() : 0;
-
-    if (hundredths === 100) hundredths = 0;
+    if(this.state.milliseconds == 99 && this.state.seconds == 99) {
+      {this.stop()}
+    }
 
     return (
       <section className="Chrono">
-        <h1>{this.addZero(minutes)}:{this.addZero(seconds)}:{this.addZero(hundredths)}</h1>
+        <h1>{this.addZero(this.state.seconds)}:{this.addZero(this.state.milliseconds)}</h1>
         <div className="buttons">
           <button onClick={this.start}>START</button>
           <button onClick={this.stop}>STOP</button>
